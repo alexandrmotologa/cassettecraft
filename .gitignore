@@ -1,0 +1,31 @@
+# Binaries
+bin/
+cassettecraft
+cassettecraft.exe
+
+# Go build artifacts
+*.o
+*.a
+*.so
+
+# Node / Web artifacts
+web/dist/
+web/node_modules/
+.npm/
+
+# IDE and Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Test outputs and temporary CA files
+tmp/
+*.test
+ca-local/
+*.prof
