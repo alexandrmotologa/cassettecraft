@@ -18,6 +18,8 @@ import (
 	"github.com/alexandrmotologa/cassettecraft/internal/cassette"
 	"github.com/alexandrmotologa/cassettecraft/internal/certs"
 	"github.com/alexandrmotologa/cassettecraft/internal/config"
+	"github.com/alexandrmotologa/cassettecraft/internal/drift"
+	"github.com/alexandrmotologa/cassettecraft/internal/har"
 	"github.com/alexandrmotologa/cassettecraft/internal/proxy"
 	"github.com/alexandrmotologa/cassettecraft/internal/runner"
 	"github.com/alexandrmotologa/cassettecraft/web"
@@ -49,6 +51,12 @@ func main() {
 		runExec(os.Args[2:])
 	case "studio":
 		runStudio(os.Args[2:])
+	case "lint":
+		runLint(os.Args[2:])
+	case "drift", "check":
+		runDrift(os.Args[2:])
+	case "import":
+		runImport(os.Args[2:])
 	case "ca":
 		runCA(os.Args[2:])
 	case "version", "-v", "--version":
@@ -350,6 +358,109 @@ func runExec(args []string) {
 	}
 
 	os.Exit(exitCode)
+}
+
+func runLint(args []string) {
+	targetPath := "./cassettes"
+	if len(args) > 0 {
+		targetPath = args[0]
+	}
+
+	fmt.Printf("Scanning %s for unredacted secrets...\n", targetPath)
+	report, err := cassette.LintPath(targetPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if report.Clean {
+		fmt.Printf("✓ %d cassette files scanned: 0 violations found. Ready for commit.\n", report.ScannedFiles)
+		os.Exit(0)
+	}
+
+	fmt.Fprintf(os.Stderr, "\n❌ Security Violations Found (%d leaks across %d files):\n\n", len(report.Violations), report.ScannedFiles)
+	for i, v := range report.Violations {
+		fmt.Fprintf(os.Stderr, "  [%d] %s (%s)\n", i+1, v.File, v.InteractionID)
+		fmt.Fprintf(os.Stderr, "      Location: %s\n", v.Location)
+		fmt.Fprintf(os.Stderr, "      Type:     %s\n", v.SecretType)
+		fmt.Fprintf(os.Stderr, "      Preview:  %s\n\n", v.Snippet)
+	}
+	os.Exit(1)
+}
+
+func runDrift(args []string) {
+	fs := flag.NewFlagSet("drift", flag.ExitOnError)
+	cassName := fs.String("cassette", "", "Cassette file name to check for drift")
+	fs.StringVar(cassName, "c", "", "Cassette name (shorthand)")
+	cassDir := fs.String("cassette-dir", "./cassettes", "Cassette directory")
+	fs.StringVar(cassDir, "d", "./cassettes", "Cassette directory (shorthand)")
+	_ = fs.Parse(args)
+
+	if *cassName == "" {
+		fmt.Fprintf(os.Stderr, "Error: --cassette flag is required for drift check.\nExample: cassettecraft drift -c stripe.yaml\n")
+		os.Exit(1)
+	}
+
+	storage, err := cassette.NewStorage(*cassDir, *cassName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	cass, err := storage.Load(*cassName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading cassette: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Auditing %d interactions in %s against live upstream APIs...\n", len(cass.Interactions), *cassName)
+	report, err := drift.CheckCassetteDrift(cass, *cassName, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Drift check error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if !report.HasDrift {
+		fmt.Printf("✓ 0 API drift detected across %d interactions. Cassette matches live API behavior perfectly.\n", report.TotalInteractions)
+		os.Exit(0)
+	}
+
+	fmt.Printf("\n⚠️  API Drift Detected in %d of %d interactions:\n\n", report.DriftedCount, report.TotalInteractions)
+	for _, item := range report.Items {
+		if len(item.Differences) > 0 || item.StatusChanged {
+			fmt.Printf("  • %s %s [%s]\n", item.Method, item.URL, item.InteractionID)
+			for _, d := range item.Differences {
+				fmt.Printf("      - %s\n", d)
+			}
+			fmt.Println()
+		}
+	}
+	os.Exit(1)
+}
+
+func runImport(args []string) {
+	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	format := fs.String("format", "har", "Import format (currently supports 'har')")
+	inPath := fs.String("in", "", "Input file path (e.g. network.har)")
+	outPath := fs.String("out", "./imported.yaml", "Output cassette YAML file path")
+	_ = fs.Parse(args)
+
+	if *inPath == "" {
+		fmt.Fprintf(os.Stderr, "Error: --in flag is required. Example:\n  cassettecraft import --format har --in network.har --out ./cassettes/stripe.yaml\n")
+		os.Exit(1)
+	}
+
+	if *format != "har" {
+		fmt.Fprintf(os.Stderr, "Unsupported format: %s. Supported formats: har\n", *format)
+		os.Exit(1)
+	}
+
+	if err := har.ImportHARFile(*inPath, *outPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Import failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Successfully converted and sanitized %q -> %q\n", *inPath, *outPath)
 }
 
 func runCA(args []string) {

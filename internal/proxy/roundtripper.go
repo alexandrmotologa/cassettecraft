@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"fmt"
@@ -9,15 +10,18 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/alexandrmotologa/cassettecraft/internal/cassette"
 )
 
 // CapturedResponse holds the captured upstream response details.
 type CapturedResponse struct {
-	Status     int
-	StatusText string
-	Headers    map[string]string
-	Body       []byte
-	LatencyMs  int64
+	Status       int
+	StatusText   string
+	Headers      map[string]string
+	Body         []byte
+	LatencyMs    int64
+	StreamChunks []cassette.StreamChunk
 }
 
 // ForwardRequest forwards an HTTP request to the real upstream service and captures the response.
@@ -70,9 +74,36 @@ func ForwardRequest(req *http.Request, bodyBytes []byte, clientTLS bool, insecur
 
 	latency := time.Since(startTime).Milliseconds()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read upstream response body: %w", err)
+	var respBody []byte
+	var streamChunks []cassette.StreamChunk
+	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
+
+	if strings.Contains(contentType, "text/event-stream") || strings.Contains(contentType, "ndjson") {
+		reader := bufio.NewReader(resp.Body)
+		var buf bytes.Buffer
+		streamStart := time.Now()
+
+		for {
+			chunk, err := reader.ReadBytes('\n')
+			if len(chunk) > 0 {
+				buf.Write(chunk)
+				offset := time.Since(streamStart).Milliseconds()
+				streamChunks = append(streamChunks, cassette.StreamChunk{
+					OffsetMs: offset,
+					Data:     string(chunk),
+				})
+			}
+			if err != nil {
+				break
+			}
+		}
+		respBody = buf.Bytes()
+	} else {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read upstream response body: %w", err)
+		}
+		respBody = bodyBytes
 	}
 
 	respHeaders := make(map[string]string)
@@ -83,11 +114,12 @@ func ForwardRequest(req *http.Request, bodyBytes []byte, clientTLS bool, insecur
 	}
 
 	return &CapturedResponse{
-		Status:     resp.StatusCode,
-		StatusText: http.StatusText(resp.StatusCode),
-		Headers:    respHeaders,
-		Body:       respBody,
-		LatencyMs:  latency,
+		Status:       resp.StatusCode,
+		StatusText:   http.StatusText(resp.StatusCode),
+		Headers:      respHeaders,
+		Body:         respBody,
+		LatencyMs:    latency,
+		StreamChunks: streamChunks,
 	}, nil
 }
 

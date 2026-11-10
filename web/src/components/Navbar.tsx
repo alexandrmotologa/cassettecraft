@@ -10,7 +10,10 @@ import {
   Activity, 
   Split, 
   Sliders,
-  Download
+  Download,
+  Terminal,
+  Compass,
+  ShieldAlert
 } from 'lucide-react';
 import { ProxyMode } from '../types/api';
 
@@ -51,9 +54,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'waterfall', label: 'Waterfall', icon: Activity, count: interactionsCount },
     { id: 'cassettes', label: 'Cassettes', icon: FileCode2 },
-    { id: 'diff', label: 'Diff Inspector', icon: Split },
-    { id: 'redaction', label: 'Redaction Sandbox', icon: ShieldCheck },
-    { id: 'chaos', label: 'Chaos Simulator', icon: Sliders },
+    { id: 'scratchpad', label: 'Scratchpad', icon: Terminal },
+    { id: 'diff', label: 'Diff', icon: Split },
+    { id: 'redaction', label: 'Sandbox', icon: ShieldCheck },
+    { id: 'chaos', label: 'Chaos', icon: Sliders },
+    { id: 'drift', label: 'Drift', icon: Compass },
+    { id: 'audit', label: 'Audit', icon: ShieldAlert },
   ];
 
   return (

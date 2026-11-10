@@ -34,6 +34,7 @@ func TestMatcherStandardStrategy(t *testing.T) {
 		"https://api.stripe.com/v1/customers?page=1&limit=10",
 		nil,
 		[]byte("{\n  \"tier\": \"gold\",\n  \"name\": \"Alice\"\n}"),
+		"",
 	)
 
 	if res.Matched == nil {
@@ -50,6 +51,7 @@ func TestMatcherStandardStrategy(t *testing.T) {
 		"https://api.stripe.com/v1/customers",
 		nil,
 		nil,
+		"",
 	)
 	if resDiffMethod.Matched != nil {
 		t.Fatal("expected no match on method difference")
@@ -62,6 +64,7 @@ func TestMatcherStandardStrategy(t *testing.T) {
 		"https://api.stripe.com/v1/customers?page=2&limit=10",
 		nil,
 		[]byte(`{"name":"Alice","tier":"gold"}`),
+		"",
 	)
 	if resDiffQuery.Matched != nil {
 		t.Fatal("expected no match on query difference")
@@ -103,21 +106,65 @@ func TestMatcherSequentialMode(t *testing.T) {
 	)
 
 	// Call 1
-	r1 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil)
+	r1 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil, "")
 	if r1.Matched == nil || r1.Matched.ID != "poll_1" {
 		t.Fatalf("expected poll_1, got %v", r1.Matched)
 	}
 
 	// Call 2
-	r2 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil)
+	r2 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil, "")
 	if r2.Matched == nil || r2.Matched.ID != "poll_2" {
 		t.Fatalf("expected poll_2, got %v", r2.Matched)
 	}
 
 	// Call 3
-	r3 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil)
+	r3 := matcher.FindMatch(cass, "GET", "https://api.example.com/v1/job/123", nil, nil, "")
 	if r3.Matched == nil || r3.Matched.ID != "poll_3" {
 		t.Fatalf("expected poll_3, got %v", r3.Matched)
+	}
+}
+
+func TestMatcherSessionIsolation(t *testing.T) {
+	cfg := config.DefaultConfig().Matching
+	cfg.Sequential = true
+	matcher := proxy.NewMatcher(cfg)
+
+	cass := cassette.NewCassette()
+	cass.Interactions = append(cass.Interactions,
+		cassette.Interaction{
+			ID: "step_1",
+			Request: cassette.RequestData{
+				Method: "GET",
+				URL:    "https://api.example.com/step",
+			},
+			Response: cassette.ResponseData{Status: 200, Body: "first"},
+		},
+		cassette.Interaction{
+			ID: "step_2",
+			Request: cassette.RequestData{
+				Method: "GET",
+				URL:    "https://api.example.com/step",
+			},
+			Response: cassette.ResponseData{Status: 200, Body: "second"},
+		},
+	)
+
+	// Worker 1 calls step
+	w1_1 := matcher.FindMatch(cass, "GET", "https://api.example.com/step", nil, nil, "worker-1")
+	if w1_1.Matched == nil || w1_1.Matched.ID != "step_1" {
+		t.Fatalf("worker-1 expected step_1, got %v", w1_1.Matched)
+	}
+
+	// Worker 2 calls step -> must get step_1 because Worker 2 has its own isolated session!
+	w2_1 := matcher.FindMatch(cass, "GET", "https://api.example.com/step", nil, nil, "worker-2")
+	if w2_1.Matched == nil || w2_1.Matched.ID != "step_1" {
+		t.Fatalf("worker-2 expected step_1, got %v", w2_1.Matched)
+	}
+
+	// Worker 1 calls step again -> gets step_2
+	w1_2 := matcher.FindMatch(cass, "GET", "https://api.example.com/step", nil, nil, "worker-1")
+	if w1_2.Matched == nil || w1_2.Matched.ID != "step_2" {
+		t.Fatalf("worker-1 second call expected step_2, got %v", w1_2.Matched)
 	}
 }
 

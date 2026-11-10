@@ -12,6 +12,7 @@ import (
 	"github.com/alexandrmotologa/cassettecraft/internal/certs"
 	"github.com/alexandrmotologa/cassettecraft/internal/chaos"
 	"github.com/alexandrmotologa/cassettecraft/internal/config"
+	"github.com/alexandrmotologa/cassettecraft/internal/drift"
 	"github.com/alexandrmotologa/cassettecraft/internal/proxy"
 )
 
@@ -84,6 +85,12 @@ func (h *Handler) registerRoutes() {
 
 	// Redaction Sandbox Tester
 	h.mux.HandleFunc("/api/v1/redact/test", h.handleRedactTest)
+
+	// Security Audit Linter
+	h.mux.HandleFunc("/api/v1/lint", h.handleLint)
+
+	// API Drift Detector
+	h.mux.HandleFunc("/api/v1/drift", h.handleDrift)
 
 	// Web Studio static assets
 	if h.webFS != nil {
@@ -355,6 +362,49 @@ func (h *Handler) handleRedactTest(w http.ResponseWriter, req *http.Request) {
 		"original":  payload.Text,
 		"sanitized": sanitized,
 	})
+}
+
+func (h *Handler) handleLint(w http.ResponseWriter, req *http.Request) {
+	storage := h.server.GetStorage()
+	baseDir := storage.GetBaseDir()
+
+	report, err := cassette.LintPath(baseDir)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to lint cassettes: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, report)
+}
+
+func (h *Handler) handleDrift(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var payload struct {
+		Cassette string `json:"cassette"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil || payload.Cassette == "" {
+		http.Error(w, "Cassette field required in JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	storage := h.server.GetStorage()
+	cass, err := storage.Load(payload.Cassette)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to load cassette: %v", err), http.StatusNotFound)
+		return
+	}
+
+	report, err := drift.CheckCassetteDrift(cass, payload.Cassette, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to check drift: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, report)
 }
 
 func jsonResponse(w http.ResponseWriter, status int, data interface{}) {

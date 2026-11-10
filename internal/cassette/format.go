@@ -25,14 +25,21 @@ type RequestData struct {
 	BodyHash string            `yaml:"body_hash,omitempty" json:"body_hash,omitempty"`
 }
 
+// StreamChunk represents a single chunk or event in a streaming response (e.g. SSE or chunked transfer).
+type StreamChunk struct {
+	OffsetMs int64  `yaml:"offset_ms" json:"offset_ms"`
+	Data     string `yaml:"data" json:"data"`
+}
+
 // ResponseData represents the recorded HTTP response.
 type ResponseData struct {
-	Status     int               `yaml:"status" json:"status"`
-	StatusText string            `yaml:"status_text,omitempty" json:"status_text,omitempty"`
-	Headers    map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
-	Body       string            `yaml:"body,omitempty" json:"body,omitempty"`
-	BodyHash   string            `yaml:"body_hash,omitempty" json:"body_hash,omitempty"`
-	LatencyMs  int64             `yaml:"latency_ms,omitempty" json:"latency_ms,omitempty"`
+	Status       int               `yaml:"status" json:"status"`
+	StatusText   string            `yaml:"status_text,omitempty" json:"status_text,omitempty"`
+	Headers      map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+	Body         string            `yaml:"body,omitempty" json:"body,omitempty"`
+	BodyHash     string            `yaml:"body_hash,omitempty" json:"body_hash,omitempty"`
+	LatencyMs    int64             `yaml:"latency_ms,omitempty" json:"latency_ms,omitempty"`
+	StreamChunks []StreamChunk     `yaml:"stream_chunks,omitempty" json:"stream_chunks,omitempty"`
 }
 
 // Interaction represents a single request and response cycle.

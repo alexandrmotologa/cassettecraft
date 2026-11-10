@@ -10,11 +10,17 @@ Self-hosted HTTP and HTTPS recording and replay proxy for integration tests and 
 
 - **Language independent**: Works with any language or test framework (Go, Node.js, Python, Rust, Java, PHP, cURL) through standard HTTP proxy configuration.
 - **Transparent TLS MITM**: Handles HTTPS connections with on-the-fly leaf certificate generation and an in-memory or persisted local certificate authority.
+- **AI Streaming and SSE support**: Intercepts Server-Sent Events (`text/event-stream`) and chunked responses, recording timing intervals and replaying streams with high fidelity.
+- **Dynamic response templating**: Resolves runtime variables (`{{uuid}}`, `{{now_utc}}`, `{{request.body.field}}`) during replay to keep responses in sync with dynamic tests.
+- **Multi-worker test isolation**: Supports concurrent parallel testing (`pytest -n 4`, `go test -parallel 4`) using isolated session contexts via the `X-Cassette-Session` header.
+- **Security linter**: Scans repositories for unredacted secrets with `cassettecraft lint` before committing cassettes to version control.
+- **API drift detector**: Compares recorded cassettes against live external endpoints with `cassettecraft drift` to detect breaking API changes or schema modifications.
+- **HAR import and cURL generator**: Imports browser and DevTools `.har` archives into sanitized cassettes and generates executable cURL snippets.
 - **Deterministic cassettes**: Sorts headers, normalizes JSON payloads, and calculates SHA-256 body hashes to keep git diffs minimal and stable.
 - **Automated secret scrubbing**: Replaces API keys, Bearer tokens, basic authentication headers, credit card patterns, and sensitive JSON fields before writing to disk.
 - **Flexible request matching**: Supports exact matching, path and method matching, normalized JSON body comparison, and sequential FIFO replay for stateful workflows.
 - **Process execution wrapper**: The `cassettecraft exec` command runs test commands with proxy and CA environment variables pre-configured.
-- **Embedded web studio**: Provides a visual cockpit built with React 19 to inspect captured transactions, edit mock responses, test redaction rules, and simulate latency.
+- **Embedded web studio**: Provides a visual cockpit built with React 19 to inspect captured transactions, edit mock responses, test requests in a scratchpad, and simulate latency.
 - **Minimal memory footprint**: Consumes less than 25MB of RAM under load with zero CGo dependencies.
 
 ---
@@ -110,6 +116,27 @@ Spawns a child process with proxy and certificate environment variables set auto
 
 ```bash
 cassettecraft exec --mode replay --cassette tests/cassettes/auth.yaml -- npm test
+```
+
+### `cassettecraft lint`
+Scans cassette files for unredacted credentials before git commit:
+
+```bash
+cassettecraft lint ./cassettes
+```
+
+### `cassettecraft drift`
+Audits recorded cassettes against live external APIs to detect schema drift:
+
+```bash
+cassettecraft drift --cassette stripe.yaml
+```
+
+### `cassettecraft import`
+Converts HTTP Archive (`.har`) files exported from browsers or DevTools into clean cassettes:
+
+```bash
+cassettecraft import --format har --in network.har --out ./cassettes/browser_flow.yaml
 ```
 
 ### `cassettecraft ca`

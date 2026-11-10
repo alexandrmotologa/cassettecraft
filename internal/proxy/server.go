@@ -285,6 +285,11 @@ func (s *Server) processDecryptedRequest(req *http.Request, isTLS bool) ([]byte,
 		}
 	}
 
+	sessionID := req.Header.Get("X-Cassette-Session")
+	if sessionID == "" {
+		sessionID = "default"
+	}
+
 	targetCassName := s.storage.GetActiveName()
 	if headerCass := req.Header.Get("X-Cassette-Name"); headerCass != "" {
 		targetCassName = headerCass
@@ -329,17 +334,23 @@ func (s *Server) processDecryptedRequest(req *http.Request, isTLS bool) ([]byte,
 			break
 		}
 
-		result := s.matcher.FindMatch(cass, req.Method, matchURL, matchHeaders, matchBody)
+		result := s.matcher.FindMatch(cass, req.Method, matchURL, matchHeaders, matchBody, sessionID)
 		if result.Matched != nil {
 			matched = true
-			statusCode = result.Matched.Response.Status
-			resHeaders = copyMap(result.Matched.Response.Headers)
+			templatedResp := cassette.ApplyResponseTemplates(
+				result.Matched.Response,
+				result.Matched.Request,
+				fullURL,
+				reqHeadersMap,
+			)
+			statusCode = templatedResp.Status
+			resHeaders = copyMap(templatedResp.Headers)
 			if resHeaders == nil {
 				resHeaders = make(map[string]string)
 			}
 			resHeaders["X-CassetteCraft"] = "REPLAY"
 			resHeaders["X-CassetteCraft-ID"] = result.Matched.ID
-			resBody = []byte(result.Matched.Response.Body)
+			resBody = []byte(templatedResp.Body)
 			latencyMs = time.Since(startTime).Milliseconds()
 		} else {
 			statusCode = http.StatusBadGateway
@@ -382,11 +393,12 @@ func (s *Server) processDecryptedRequest(req *http.Request, isTLS bool) ([]byte,
 				Body:    string(bodyBytes),
 			},
 			Response: cassette.ResponseData{
-				Status:     captured.Status,
-				StatusText: captured.StatusText,
-				Headers:    captured.Headers,
-				Body:       string(captured.Body),
-				LatencyMs:  captured.LatencyMs,
+				Status:       captured.Status,
+				StatusText:   captured.StatusText,
+				Headers:      captured.Headers,
+				Body:         string(captured.Body),
+				LatencyMs:    captured.LatencyMs,
+				StreamChunks: captured.StreamChunks,
 			},
 		}
 
@@ -398,17 +410,23 @@ func (s *Server) processDecryptedRequest(req *http.Request, isTLS bool) ([]byte,
 		// Attempt replay first
 		cass, err := s.storage.Load(targetCassName)
 		if err == nil {
-			result := s.matcher.FindMatch(cass, req.Method, matchURL, matchHeaders, matchBody)
+			result := s.matcher.FindMatch(cass, req.Method, matchURL, matchHeaders, matchBody, sessionID)
 			if result.Matched != nil {
 				matched = true
-				statusCode = result.Matched.Response.Status
-				resHeaders = copyMap(result.Matched.Response.Headers)
+				templatedResp := cassette.ApplyResponseTemplates(
+					result.Matched.Response,
+					result.Matched.Request,
+					fullURL,
+					reqHeadersMap,
+				)
+				statusCode = templatedResp.Status
+				resHeaders = copyMap(templatedResp.Headers)
 				if resHeaders == nil {
 					resHeaders = make(map[string]string)
 				}
 				resHeaders["X-CassetteCraft"] = "REPLAY"
 				resHeaders["X-CassetteCraft-ID"] = result.Matched.ID
-				resBody = []byte(result.Matched.Response.Body)
+				resBody = []byte(templatedResp.Body)
 				latencyMs = time.Since(startTime).Milliseconds()
 				break
 			}
@@ -441,11 +459,12 @@ func (s *Server) processDecryptedRequest(req *http.Request, isTLS bool) ([]byte,
 				Body:    string(bodyBytes),
 			},
 			Response: cassette.ResponseData{
-				Status:     captured.Status,
-				StatusText: captured.StatusText,
-				Headers:    captured.Headers,
-				Body:       string(captured.Body),
-				LatencyMs:  captured.LatencyMs,
+				Status:       captured.Status,
+				StatusText:   captured.StatusText,
+				Headers:      captured.Headers,
+				Body:         string(captured.Body),
+				LatencyMs:    captured.LatencyMs,
+				StreamChunks: captured.StreamChunks,
 			},
 		}
 

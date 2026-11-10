@@ -33,26 +33,34 @@ type MismatchDiagnostic struct {
 type Matcher struct {
 	cfg           config.MatchingConfig
 	seqMu         sync.Mutex
-	consumedIndex map[string]int // tracks consumed index for sequential mode
+	consumedIndex map[string]map[string]int // sessionID -> routeKey -> consumedIndex
 }
 
 // NewMatcher creates a new request matcher with configuration.
 func NewMatcher(cfg config.MatchingConfig) *Matcher {
 	return &Matcher{
 		cfg:           cfg,
-		consumedIndex: make(map[string]int),
+		consumedIndex: make(map[string]map[string]int),
 	}
 }
 
-// ResetSequential clears sequential playback progress.
-func (m *Matcher) ResetSequential() {
+// ResetSequential clears sequential playback progress for a session (or all if session is empty).
+func (m *Matcher) ResetSequential(sessionID string) {
 	m.seqMu.Lock()
 	defer m.seqMu.Unlock()
-	m.consumedIndex = make(map[string]int)
+	if sessionID == "" {
+		m.consumedIndex = make(map[string]map[string]int)
+	} else {
+		delete(m.consumedIndex, sessionID)
+	}
 }
 
 // FindMatch looks for an interaction in the cassette that matches the incoming request.
-func (m *Matcher) FindMatch(cass *cassette.Cassette, method, reqURL string, headers map[string]string, body []byte) *MatchResult {
+func (m *Matcher) FindMatch(cass *cassette.Cassette, method, reqURL string, headers map[string]string, body []byte, sessionID string) *MatchResult {
+	if sessionID == "" {
+		sessionID = "default"
+	}
+
 	if cass == nil || len(cass.Interactions) == 0 {
 		return &MatchResult{
 			Diagnostics: &MismatchDiagnostic{
@@ -71,13 +79,19 @@ func (m *Matcher) FindMatch(cass *cassette.Cassette, method, reqURL string, head
 	m.seqMu.Lock()
 	defer m.seqMu.Unlock()
 
+	sessionMap, exists := m.consumedIndex[sessionID]
+	if !exists {
+		sessionMap = make(map[string]int)
+		m.consumedIndex[sessionID] = sessionMap
+	}
+
 	for i, inter := range cass.Interactions {
 		routeKey := fmt.Sprintf("%s %s", inter.Request.Method, inter.Request.URL)
 		availableRoutes = append(availableRoutes, routeKey)
 
-		// Check if already consumed in sequential mode
+		// Check if already consumed in sequential mode for this session
 		if m.cfg.Sequential {
-			if consumed, exists := m.consumedIndex[routeKey]; exists && i < consumed {
+			if consumed, exists := sessionMap[routeKey]; exists && i < consumed {
 				continue
 			}
 		}
@@ -85,7 +99,7 @@ func (m *Matcher) FindMatch(cass *cassette.Cassette, method, reqURL string, head
 		matched, score, reasons := m.evaluateInteraction(inter, method, parsedReqURL, reqURL, headers, body)
 		if matched {
 			if m.cfg.Sequential {
-				m.consumedIndex[routeKey] = i + 1
+				sessionMap[routeKey] = i + 1
 			}
 			return &MatchResult{
 				Matched: &inter,

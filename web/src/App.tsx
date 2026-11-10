@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Waterfall } from './components/Waterfall';
 import { CassetteManager } from './components/CassetteManager';
+import { Scratchpad } from './components/Scratchpad';
 import { DiffViewer } from './components/DiffViewer';
 import { RedactionTester } from './components/RedactionTester';
 import { ChaosControls } from './components/ChaosControls';
+import { DriftAudit } from './components/DriftAudit';
+import { SecurityAudit } from './components/SecurityAudit';
 import { CAModal } from './components/CAModal';
 import { LiveInteraction, ProxyMode, StatusResponse } from './types/api';
 
@@ -132,6 +135,9 @@ export const App: React.FC = () => {
             onActiveCassetteChange={handleActiveCassetteChange}
           />
         )}
+        {currentTab === 'scratchpad' && (
+          <Scratchpad activeCassette={activeCassette} />
+        )}
         {currentTab === 'diff' && (
           <DiffViewer 
             initialLeft={diffLeft} 
@@ -140,6 +146,8 @@ export const App: React.FC = () => {
         )}
         {currentTab === 'redaction' && <RedactionTester />}
         {currentTab === 'chaos' && <ChaosControls />}
+        {currentTab === 'drift' && <DriftAudit />}
+        {currentTab === 'audit' && <SecurityAudit />}
       </main>
 
       <CAModal

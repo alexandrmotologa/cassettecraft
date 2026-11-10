@@ -51,6 +51,13 @@ func (s *Storage) GetActiveName() string {
 	return s.activeName
 }
 
+// GetBaseDir returns the base storage directory path.
+func (s *Storage) GetBaseDir() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.baseDir
+}
+
 // SetActiveName sets the currently active cassette filename.
 func (s *Storage) SetActiveName(name string) {
 	s.mu.Lock()
