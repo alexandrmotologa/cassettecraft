@@ -63,8 +63,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="border-b border-slate-800 bg-[#0c1220]/90 backdrop-blur sticky top-0 z-30 px-4 py-2.5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header className="border-b border-slate-800 bg-[#0c1220]/90 backdrop-blur sticky top-0 z-30 px-3 sm:px-4 py-2.5">
+      <div className="max-w-7xl mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-3">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm shadow-indigo-500/10">
@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-lg">
+        <nav className="flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-lg overflow-x-auto max-w-full order-3 lg:order-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -97,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setCurrentTab(item.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -118,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Mode Switcher & Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 order-2 lg:order-3">
           {/* Mode Switcher */}
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
             {(['record', 'replay', 'auto', 'passthrough'] as ProxyMode[]).map((m) => {

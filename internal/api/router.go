@@ -75,6 +75,7 @@ func (h *Handler) registerRoutes() {
 	// Live Interactions
 	h.mux.HandleFunc("/api/v1/interactions/live", h.handleLiveInteractions)
 	h.mux.HandleFunc("/api/v1/interactions/purge", h.handlePurgeInteractions)
+	h.mux.HandleFunc("/api/v1/interactions/seed", h.handleSeedInteractions)
 
 	// Root CA Download
 	h.mux.HandleFunc("/ca.crt", h.handleDownloadCA)
@@ -306,6 +307,26 @@ func (h *Handler) handlePurgeInteractions(w http.ResponseWriter, req *http.Reque
 	buffer.Clear()
 	jsonResponse(w, http.StatusOK, map[string]string{
 		"message": "Live interactions buffer purged",
+	})
+}
+
+func (h *Handler) handleSeedInteractions(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var items []proxy.LiveInteraction
+	if err := json.NewDecoder(req.Body).Decode(&items); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid JSON payload: %v", err), http.StatusBadRequest)
+		return
+	}
+	buffer := h.server.GetBuffer()
+	for _, it := range items {
+		buffer.Add(it)
+	}
+	jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"message": "Interactions seeded successfully",
+		"count":   len(items),
 	})
 }
 

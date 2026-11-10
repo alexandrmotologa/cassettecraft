@@ -1,8 +1,78 @@
-# cassettecraft
+<p align="center">
+  <img src="docs/images/logo.png?raw=true" alt="CassetteCraft Logo" width="130" style="border-radius: 24px;" />
+</p>
 
-Self-hosted HTTP and HTTPS recording and replay proxy for integration tests and CI/CD pipelines.
+<h1 align="center">CassetteCraft</h1>
+
+<p align="center">
+  <a href="https://github.com/alexandrmotologa/cassettecraft/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.23%2B-blue.svg" alt="Go Version" /></a>
+  <a href="https://react.dev"><img src="https://img.shields.io/badge/studio-React%2019-61dafb.svg" alt="React 19" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
+  <a href="#minimal-memory-footprint"><img src="https://img.shields.io/badge/memory-%3C%2025MB%20RAM-purple.svg" alt="Memory" /></a>
+</p>
+
+<p align="center">
+  <b>Self-hosted HTTP and HTTPS recording and replay proxy for flaky-free integration tests and CI/CD pipelines.</b>
+</p>
+
+---
 
 `cassettecraft` intercepts outbound HTTP and HTTPS network traffic from your test suite through standard `HTTP_PROXY` and `HTTPS_PROXY` environment variables. During recording, it forwards requests to real upstream services, scrubs credentials, and writes deterministic YAML or JSON cassettes. During replay, it answers matching requests locally with sub-millisecond latency and zero external network calls.
+
+---
+
+## Demo Walkthrough
+
+<p align="center">
+  <img src="docs/images/cassettecraft_demo.gif?raw=true" alt="CassetteCraft Studio Animated Walkthrough" width="100%" style="border-radius: 8px; border: 1px solid #1e293b;" />
+</p>
+
+---
+
+## Visual Cassette Studio
+
+CassetteCraft includes an embedded web cockpit built with React 19, accessible at `http://localhost:8585` during test recording or standalone inspection.
+
+### 1. Real-Time Interaction Waterfall & Inspection
+
+Inspect live HTTP transactions, filter by status codes (2XX, 4XX, 5XX) or methods, view sub-millisecond replay latencies, and debug response payloads.
+
+<p align="center">
+  <img src="docs/images/cassettecraft_waterfall.png?raw=true" alt="CassetteCraft Live Waterfall" width="100%" style="border-radius: 8px; border: 1px solid #1e293b;" />
+</p>
+
+### 2. Cassette Manager & Interactive Mock Editor
+
+Browse stored YAML cassettes, inspect recorded interactions, and modify mock responses or HTTP status codes directly in the visual editor.
+
+<p align="center">
+  <img src="docs/images/cassettecraft_manager.png?raw=true" alt="CassetteCraft Cassette Manager" width="100%" style="border-radius: 8px; border: 1px solid #1e293b;" />
+</p>
+
+### 3. HTTP Request Scratchpad
+
+Compose arbitrary HTTP requests against upstream services or local cassettes with automatic cURL snippet generation.
+
+<p align="center">
+  <img src="docs/images/cassettecraft_scratchpad.png?raw=true" alt="CassetteCraft HTTP Scratchpad" width="100%" style="border-radius: 8px; border: 1px solid #1e293b;" />
+</p>
+
+### 4. Third-Party API Drift Detector
+
+Compare recorded interactions with live upstream APIs to detect breaking schema changes and deprecated endpoints before deploying to production.
+
+<p align="center">
+  <img src="docs/images/cassettecraft_drift.png?raw=true" alt="CassetteCraft Drift Detector" width="100%" style="border-radius: 8px; border: 1px solid #1e293b;" />
+</p>
+
+### 5. Multi-Device Responsive Design
+
+Cassette Studio adapts across all viewport sizes, from high-density desktop monitors down to mobile devices.
+
+<p align="center">
+  <img src="docs/images/cassettecraft_mobile.png?raw=true" alt="CassetteCraft Mobile Responsive Layout" width="340" style="border-radius: 12px; border: 1px solid #1e293b;" />
+</p>
 
 ---
 

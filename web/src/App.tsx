@@ -11,8 +11,14 @@ import { SecurityAudit } from './components/SecurityAudit';
 import { CAModal } from './components/CAModal';
 import { LiveInteraction, ProxyMode, StatusResponse } from './types/api';
 
+const getInitialTab = () => {
+  const hash = window.location.hash.replace('#', '');
+  const validTabs = ['waterfall', 'cassettes', 'scratchpad', 'diff', 'redaction', 'chaos', 'drift', 'audit'];
+  return validTabs.includes(hash) ? hash : 'waterfall';
+};
+
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<string>('waterfall');
+  const [currentTab, setCurrentTab] = useState<string>(getInitialTab);
   const [mode, setMode] = useState<ProxyMode>('record');
   const [activeCassette, setActiveCassette] = useState<string>('default.yaml');
   const [interactions, setInteractions] = useState<LiveInteraction[]>([]);
@@ -109,11 +115,16 @@ export const App: React.FC = () => {
     setCurrentTab('diff');
   };
 
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab);
+    window.location.hash = tab;
+  };
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
       <Navbar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={handleTabChange}
         mode={mode}
         onModeChange={handleModeChange}
         activeCassette={activeCassette}

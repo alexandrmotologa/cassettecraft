@@ -1,0 +1,125 @@
+version: 1
+recorded_at: 2026-11-10T16:45:00Z
+recorded_by: cassettecraft/v1.0
+interactions:
+  - id: int_stripe_001
+    recorded_at: 2026-11-10T16:45:01Z
+    request:
+      method: POST
+      url: https://api.stripe.com/v1/customers
+      headers:
+        Authorization: "Bearer [REDACTED_BEARER_TOKEN]"
+        Content-Type: "application/x-www-form-urlencoded"
+        Idempotency-Key: "idemp_8fbc2e1a90d"
+      body: "name=Acme+Corp&email=billing%40acme.corp&metadata%5Btier%5D=enterprise"
+      body_hash: d82ef3b6e8a0026a798fbb94e4a7a8d8e6cb0fca33984e7be590ab12fcd90d41
+    response:
+      status: 200
+      status_text: OK
+      headers:
+        Content-Type: "application/json"
+        Request-Id: "req_stripe_987654321"
+      body: |
+        {
+          "id": "cus_R9wL2v8N1mK4",
+          "object": "customer",
+          "balance": 0,
+          "created": 1731257101,
+          "currency": "usd",
+          "email": "billing@acme.corp",
+          "name": "Acme Corp",
+          "livemode": false,
+          "metadata": {
+            "tier": "enterprise"
+          }
+        }
+      body_hash: 7a82c40c8fa6be7d1e8d4cf72d1f70a927a48858380e227bc9a1f28b49dbb3b9
+      latency_ms: 184
+
+  - id: int_stripe_002
+    recorded_at: 2026-11-10T16:45:02Z
+    request:
+      method: POST
+      url: https://api.stripe.com/v1/payment_intents
+      headers:
+        Authorization: "Bearer [REDACTED_BEARER_TOKEN]"
+        Content-Type: "application/x-www-form-urlencoded"
+      body: "amount=25000&currency=usd&customer=cus_R9wL2v8N1mK4&payment_method=pm_card_visa"
+      body_hash: c3b782c3e1e2d4cf72d1f70a927a48858380e227bc9a1f28b49dbb3b900412ab
+    response:
+      status: 200
+      status_text: OK
+      headers:
+        Content-Type: "application/json"
+        Request-Id: "req_stripe_987654322"
+      body: |
+        {
+          "id": "pi_3N9zF2H8sKmN21",
+          "object": "payment_intent",
+          "amount": 25000,
+          "currency": "usd",
+          "customer": "cus_R9wL2v8N1mK4",
+          "status": "succeeded",
+          "capture_method": "automatic"
+        }
+      body_hash: 9e32a4e1d5c21f70a927a48858380e227bc9a1f28b49dbb3b900412abff32101
+      latency_ms: 215
+
+  - id: int_github_001
+    recorded_at: 2026-11-10T16:45:03Z
+    request:
+      method: GET
+      url: https://api.github.com/user/repos
+      headers:
+        Accept: "application/vnd.github.v3+json"
+        Authorization: "token [REDACTED_GITHUB_PAT]"
+        User-Agent: "CassetteCraft/1.0"
+      body: ""
+      body_hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    response:
+      status: 200
+      status_text: OK
+      headers:
+        Content-Type: "application/json; charset=utf-8"
+        X-RateLimit-Limit: "5000"
+        X-RateLimit-Remaining: "4988"
+      body: |
+        [
+          {
+            "id": 918237123,
+            "name": "cassettecraft",
+            "full_name": "alexandrmotologa/cassettecraft",
+            "private": false,
+            "visibility": "public",
+            "default_branch": "main"
+          }
+        ]
+      body_hash: b3e5832a4e1d5c21f70a927a48858380e227bc9a1f28b49dbb3b900412abff32
+      latency_ms: 92
+
+  - id: int_openai_001
+    recorded_at: 2026-11-10T16:45:04Z
+    request:
+      method: POST
+      url: https://api.openai.com/v1/chat/completions
+      headers:
+        Authorization: "Bearer [REDACTED_OPENAI_KEY]"
+        Content-Type: "application/json"
+      body: '{"model":"gpt-4o","stream":true,"messages":[{"role":"user","content":"Verify replay proxy"}]}'
+      body_hash: 4f32a4e1d5c21f70a927a48858380e227bc9a1f28b49dbb3b900412abff98124
+    response:
+      status: 200
+      status_text: OK
+      headers:
+        Content-Type: "text/event-stream; charset=utf-8"
+        Transfer-Encoding: "chunked"
+      body: "data: {\"choices\":[{\"delta\":{\"content\":\"Deterministic\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\" replay active.\"}}]}\n\ndata: [DONE]\n\n"
+      body_hash: a12bc4e1d5c21f70a927a48858380e227bc9a1f28b49dbb3b900412abff45678
+      latency_ms: 12
+      stream_chunks:
+        - offset_ms: 15
+          data: "data: {\"choices\":[{\"delta\":{\"content\":\"Deterministic\"}}]}\n\n"
+        - offset_ms: 25
+          data: "data: {\"choices\":[{\"delta\":{\"content\":\" replay active.\"}}]}\n\n"
+        - offset_ms: 10
+          data: "data: [DONE]\n\n"
