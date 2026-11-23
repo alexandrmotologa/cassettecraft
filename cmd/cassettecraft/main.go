@@ -31,9 +31,20 @@ var (
 )
 
 func main() {
+	for _, arg := range os.Args[1:] {
+		if arg == "version" || arg == "--version" || arg == "-v" || arg == "-V" {
+			printVersion()
+			return
+		}
+		if arg == "help" || arg == "--help" || arg == "-h" {
+			printUsage()
+			return
+		}
+	}
+
 	if len(os.Args) < 2 {
 		printUsage()
-		os.Exit(0)
+		return
 	}
 
 	command := os.Args[1]
@@ -59,10 +70,6 @@ func main() {
 		runImport(os.Args[2:])
 	case "ca":
 		runCA(os.Args[2:])
-	case "version", "-v", "--version":
-		fmt.Printf("cassettecraft v%s (%s) %s/%s\n", version, commit, runtime.GOOS, runtime.GOARCH)
-	case "help", "-h", "--help":
-		printUsage()
 	default:
 		// If first arg looks like flags for start, run start
 		if strings.HasPrefix(command, "-") {
@@ -72,6 +79,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\nRun 'cassettecraft help' for usage.\n", command)
 		os.Exit(1)
 	}
+}
+
+func printVersion() {
+	fmt.Printf("cassettecraft v%s (%s) %s/%s\n", version, commit, runtime.GOOS, runtime.GOARCH)
 }
 
 func printUsage() {

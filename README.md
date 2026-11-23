@@ -5,7 +5,8 @@
 <h1 align="center">CassetteCraft</h1>
 
 <p align="center">
-  <a href="https://github.com/alexandrmotologa/cassettecraft/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg" alt="Build Status" /></a>
+  <a href="https://github.com/alexandrmotologa/cassettecraft/actions/workflows/ci.yml"><img src="https://github.com/alexandrmotologa/cassettecraft/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/alexandrmotologa/cassettecraft/releases"><img src="https://img.shields.io/badge/version-v1.0.0-6366f1.svg?style=flat-square" alt="Version" /></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.23%2B-blue.svg" alt="Go Version" /></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/studio-React%2019-61dafb.svg" alt="React 19" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
